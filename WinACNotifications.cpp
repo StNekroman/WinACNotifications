@@ -4,7 +4,9 @@
 #include <string>
 #include "MainApp.cpp";
 
-
+/**
+* @author StNekroman
+*/
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -50,8 +52,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return 0;
     }
 
-    WNDCLASSEX wc = {
-    };
+    WNDCLASSEX wc = {};
     wc.lpfnWndProc = DefWindowProc;
     wc.hInstance = hInstance;
     wc.lpszClassName = TEXT("dummywindow");
@@ -62,18 +63,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         return 0;
     }
 
-    const HWND hwnd = CreateWindowEx(WS_EX_LEFT,
-        TEXT("dummywindow"),
-        NULL,
-        WS_OVERLAPPEDWINDOW,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        CW_USEDEFAULT,
-        NULL,
-        NULL,
-        hInstance,
-        NULL);
+    const HWND hwnd =  CreateWindow(TEXT("dummywindow"), NULL, 0, 0, 0, 0, 0, NULL, NULL, hInstance, NULL);
     if (!hwnd) {
         MessageBox(NULL, TEXT("Could not create window"), NULL, MB_ICONERROR);
         return 0;
@@ -96,8 +86,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
         }
  
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        //TranslateMessage(&msg);
+        //DispatchMessage(&msg);
     }
 
     return (int) msg.wParam;

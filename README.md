@@ -16,7 +16,10 @@ List of all possible options:
 2.  `offline` - do, what is declared in `--offline`
 3. or just do something else, like `--onstart "ping 127.0.0.1"`
 
-## Use cases:
+## Download
+Build yourself or use prebuild x64 [WinACNotifications.exe](dist/WinACNotifications.exe "WinACNotifications.exe").
+
+## Use cases
  Mining on laptop, of course!
  When AC disconnects - it is right choise to stop mining from (not-extracted) battery.
  Here is usage with nicehash:

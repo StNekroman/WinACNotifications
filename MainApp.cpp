@@ -3,6 +3,9 @@
 #include <windows.h>
 #include <string>
 
+/**
+* @author StNekroman
+*/
 class MainApp {
 private:
     std::wstring offlineAction;
