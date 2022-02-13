@@ -3,6 +3,14 @@
 #include <windows.h>
 #include <string>
 
+#define IDT_TIMER_ID 100
+
+enum class ACStatus {
+    ONLINE,
+    OFFLINE,
+    UNKNOWN
+};
+
 /**
 * @author StNekroman
 */
@@ -11,9 +19,14 @@ private:
     std::wstring offlineAction;
     std::wstring onlineAction;
     std::wstring actionOnStart;
+    int offlineTimeout = 0;
+    int onlineTimeout = 0;
     bool runOnce = false;
     bool blockingMode = false;
     HANDLE hActiveJob = NULL;
+    UINT_PTR timerId = NULL;
+    const std::wstring* lastAction = NULL;
+    ACStatus currentStatus = ACStatus::UNKNOWN;
 public:
     void setOfflineAction(std::wstring offlineAction) {
         MainApp::offlineAction = offlineAction;
@@ -23,6 +36,12 @@ public:
     }
     void setActionOnStart(std::wstring actionOnStart) {
         MainApp::actionOnStart = actionOnStart;
+    }
+    void setOfflineTimeout(int offlineTimeout) {
+        MainApp::offlineTimeout = offlineTimeout;
+    }
+    void setOnlineTimeout(int onlineTimeout) {
+        MainApp::onlineTimeout = onlineTimeout;
     }
     void setRunOnce(bool runOnce) {
         MainApp::runOnce = runOnce;
@@ -35,22 +54,29 @@ public:
         return !offlineAction.empty() || !onlineAction.empty();
     }
 
-    void runOnlineAction() {
-        runAction(onlineAction);
-    }
-
-    void runOfflineAction() {
-        runAction(offlineAction);
+    void onACStatusChanged() {
+        ACStatus status = getACStatus();        
+        if (status == ACStatus::ONLINE) {
+            runAction(onlineAction, onlineTimeout);
+        } else if (status == ACStatus::OFFLINE) {
+            runAction(offlineAction, offlineTimeout);
+        }
     }
 
     void started() {
         if (!actionOnStart.empty()) {
             if (actionOnStart.compare(TEXT("online")) == 0) {
-                runOnlineAction();
-            } else if (actionOnStart.compare(TEXT("online")) == 0) {
-                runOfflineAction();
+                const ACStatus status = getACStatus();
+                if (status == ACStatus::ONLINE) {
+                    startProcess(onlineAction);
+                }
+            } else if (actionOnStart.compare(TEXT("offline")) == 0) {
+                const ACStatus status = getACStatus();
+                if (status == ACStatus::OFFLINE) {
+                    startProcess(offlineAction);
+                }
             } else {
-                runAction(actionOnStart);
+                startProcess(actionOnStart);
             }
         }
     }
@@ -62,6 +88,9 @@ public:
         }
     }
 private:
+    static void timerproc(HWND hWND, UINT msgId, UINT_PTR timerId, DWORD systemTime);
+    void runAction(const std::wstring& action, int timeout);
+    
     void killCurrentJob() {
         if (blockingMode && hActiveJob != NULL) {
             CloseHandle(hActiveJob);
@@ -69,12 +98,39 @@ private:
         }
     }
 
-    PROCESS_INFORMATION* runAction(std::wstring action) {
+    ACStatus getACStatus() {
+        SYSTEM_POWER_STATUS powerStatus;
+        if (GetSystemPowerStatus(&powerStatus)) {
+            if (powerStatus.ACLineStatus == 1) {
+                return ACStatus::ONLINE;
+            } else if (powerStatus.ACLineStatus == 0) {
+                return ACStatus::OFFLINE;
+            }
+        }
+        return ACStatus::UNKNOWN;
+    }
+
+    void killTimer() {
+        if (timerId != NULL) {
+            KillTimer(NULL, timerId);
+            timerId = NULL;
+        }
+    }
+
+    HANDLE startProcess(const std::wstring& action) {
+        killTimer();
+
+        const ACStatus status = getACStatus();
+        if (status == currentStatus) {
+            return NULL; // no need to do anything, already in this state
+        }
+ 
+        currentStatus = status;
         killCurrentJob();
  
         if (action.empty()) {
             return NULL;
-        }
+        }       
 
         STARTUPINFO info = { sizeof(info) };
         PROCESS_INFORMATION processInfo;
@@ -109,7 +165,26 @@ private:
             if (runOnce) {
                 PostQuitMessage(0);
             }
-            return &processInfo;
+            return processInfo.hProcess;
         }
     }
 };
+
+MainApp* globalRef = NULL;
+
+void MainApp::runAction(const std::wstring& action, int timeout) {
+    if (timeout == 0) {
+        startProcess(action);
+    } else {
+        lastAction = &action;
+        globalRef = this;
+        timerId = SetTimer(NULL, IDT_TIMER_ID, timeout * 1000, MainApp::timerproc);
+    }
+}
+
+void MainApp::timerproc(HWND hWND, UINT msgId, UINT_PTR timerId, DWORD systemTime) {
+    if (msgId == WM_TIMER && timerId == globalRef->timerId) {
+        globalRef->killTimer();
+        globalRef->startProcess(*globalRef->lastAction);
+    }
+}

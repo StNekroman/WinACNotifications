@@ -2,7 +2,7 @@
 #include <windows.h>
 #include <shellapi.h>
 #include <string>
-#include "MainApp.cpp";
+#include "MainApp.cpp"
 
 /**
 * @author StNekroman
@@ -38,6 +38,16 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                 arg = args[++i];
                 app.setActionOnStart(arg);
             }
+        } else if (arg.compare(TEXT("--offlinetimeout")) == 0) {
+            if (args[i + 1] != NULL) {
+                arg = args[++i];
+                app.setOfflineTimeout(std::stoi(arg));
+            }
+        } else if (arg.compare(TEXT("--onlinetimeout")) == 0) {
+            if (args[i + 1] != NULL) {
+                arg = args[++i];
+                app.setOnlineTimeout(std::stoi(arg));
+            }
         } else {
             WCHAR message[1024];
             wsprintf(message, TEXT("Unknown argument received:\n%s"), arg.c_str());
@@ -72,22 +82,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     app.started();
 
     MSG msg;
-    SYSTEM_POWER_STATUS powerStatus;
     while (GetMessage(&msg, nullptr, 0, 0)) {
         if (msg.message == WM_POWERBROADCAST && msg.hwnd == hwnd) {
-            if (GetSystemPowerStatus(&powerStatus)) {
-                if (powerStatus.ACLineStatus == 1) {
-                    app.runOnlineAction();
-                } else if (powerStatus.ACLineStatus == 0) {
-                    app.runOfflineAction();
-                }
-            } else {
-                MessageBox(NULL, TEXT("Unable to get AC line status"), NULL, MB_ICONERROR);
-            }
+            app.onACStatusChanged();
         }
  
-        //TranslateMessage(&msg);
-        //DispatchMessage(&msg);
+        DispatchMessage(&msg);
     }
 
     return (int) msg.wParam;
