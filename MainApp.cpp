@@ -23,6 +23,7 @@ private:
     int onlineTimeout = 0;
     bool runOnce = false;
     bool blockingMode = false;
+    bool noSleep = false;
     HANDLE hActiveJob = NULL;
     UINT_PTR timerId = NULL;
     const std::wstring* lastAction = NULL;
@@ -48,6 +49,9 @@ public:
     }
     void setBlockingMode(bool blockingMode) {
         MainApp::blockingMode = blockingMode;
+    }
+    void setNoSleep(bool noSleep) {
+        MainApp::noSleep = noSleep;
     }
 
     bool isConfigValid() {
@@ -79,12 +83,18 @@ public:
                 startProcess(actionOnStart);
             }
         }
+        if (noSleep) {
+            SetThreadExecutionState(ES_SYSTEM_REQUIRED | ES_CONTINUOUS | ES_AWAYMODE_REQUIRED);
+        }
     }
 
     ~MainApp() {
         if (!runOnce) {
             CloseHandle(hActiveJob);
             hActiveJob = NULL;
+        }
+        if (noSleep) {
+            SetThreadExecutionState(ES_CONTINUOUS);
         }
     }
 private:

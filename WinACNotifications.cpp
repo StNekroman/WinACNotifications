@@ -33,6 +33,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             app.setRunOnce(true);
         } else if (arg.compare(TEXT("--blocking")) == 0) {
             app.setBlockingMode(true);
+        } else if (arg.compare(TEXT("--nosleep")) == 0) {
+            app.setNoSleep(true);
         } else if (arg.compare(TEXT("--onstart")) == 0) {
             if (args[i + 1] != NULL) {
                 arg = args[++i];
