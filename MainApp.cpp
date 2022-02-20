@@ -6,10 +6,20 @@
 #define IDT_TIMER_ID 100
 
 enum class ACStatus {
-    ONLINE,
     OFFLINE,
+    ONLINE,
     UNKNOWN
 };
+
+const char* makeACStatusName(ACStatus status) {
+    if (status == ACStatus::OFFLINE) {
+        return "OFFLINE";
+    } else if (status == ACStatus::ONLINE) {
+        return "ONLINE";
+    } else {
+        return "UNKNOWN";
+    }
+}
 
 /**
 * @author StNekroman
@@ -61,9 +71,13 @@ public:
     void onACStatusChanged() {
         ACStatus status = getACStatus();        
         if (status == ACStatus::ONLINE) {
+            LOG(INFO) << "AC online.";
             runAction(onlineAction, onlineTimeout);
         } else if (status == ACStatus::OFFLINE) {
+            LOG(INFO) << "AC offline.";
             runAction(offlineAction, offlineTimeout);
+        } else {
+            LOG(ERROR) << "Unable to identify AC online status.";
         }
     }
 
@@ -132,8 +146,11 @@ private:
 
         const ACStatus status = getACStatus();
         if (status == currentStatus) {
-            return NULL; // no need to do anything, already in this state
+            LOG(INFO) << "no need to do anything, already in this AC state (" << makeACStatusName(status) << ")";
+            return NULL;
         }
+
+        LOG(INFO) << "Running action: " << action;
  
         currentStatus = status;
         killCurrentJob();
@@ -160,7 +177,9 @@ private:
                 (LPWSTR)&lpMsgBuf,
                 0, NULL);
 
-            MessageBox(NULL, lpMsgBuf, NULL, MB_ICONERROR);
+            LOG(ERROR) << "Error during raising process: " << lpMsgBuf;
+
+            LocalFree(lpMsgBuf);
 
             return NULL;
         } else {
